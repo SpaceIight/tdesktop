@@ -93,7 +93,7 @@ base::options::toggle OptionUnlimitedRecentStickers({
 });
 
 [[nodiscard]] bool SetInMyList(Data::StickersSetFlags flags) {
-	return (flags & SetFlag::Installed) && !(flags & SetFlag::Archived);
+	return (flags & SetFlag::Installed) || (flags & SetFlag::Archived);
 }
 
 } // namespace
@@ -3215,7 +3215,7 @@ void StickersListWidget::refreshEffects() {
 void StickersListWidget::refreshMySets() {
 	auto wasSets = base::take(_mySets);
 	_favedStickersMap.clear();
-	_mySets.reserve(defaultSetsOrder().size() + 3);
+	_mySets.reserve(defaultSetsOrder().size() + session().data().stickers().archivedSetsOrder().size() + 3);
 
 	refreshFavedStickers();
 	refreshRecentStickers(false);
@@ -3224,6 +3224,10 @@ void StickersListWidget::refreshMySets() {
 	for (const auto setId : defaultSetsOrder()) {
 		const auto externalLayout = false;
 		appendSet(_mySets, setId, externalLayout, AppendSkip::Archived);
+	}
+	for (const auto setId : session().data().stickers().archivedSetsOrder()) {
+		const auto externalLayout = false;
+		appendSet(_mySets, setId, externalLayout, AppendSkip::None);
 	}
 	refreshMegagroupStickers(GroupStickersPlace::Hidden);
 
@@ -3363,6 +3367,9 @@ bool StickersListWidget::appendSet(
 	auto it = sets.find(setId);
 	if (it == sets.cend()
 		|| (!externalLayout && it->second->stickers.isEmpty())) {
+		if (it != sets.cend() && (it->second->flags & SetFlag::Archived)) {
+			session().api().scheduleStickerSetRequest(it->second->id, it->second->accessHash);
+		}
 		return false;
 	}
 	const auto set = it->second.get();
