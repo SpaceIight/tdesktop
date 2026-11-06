@@ -474,6 +474,7 @@ void Stickers::applyArchivedResult(
 		}
 		archived.push_back(set->id);
 	}
+
 	if (!setsToRequest.isEmpty()) {
 		for (auto i = setsToRequest.cbegin(), e = setsToRequest.cend(); i != e; ++i) {
 			session().api().scheduleStickerSetRequest(i.key(), i.value());
@@ -843,6 +844,16 @@ void Stickers::somethingReceived(
 			++it;
 		} else {
 			it = sets.erase(it);
+		}
+	}
+
+	for (const auto setId : archivedSetsOrder()) {
+		const auto it = sets.find(setId);
+		if (it != sets.cend()) {
+			const auto set = it->second.get();
+			if (set->stickers.isEmpty() || (set->flags & SetFlag::NotLoaded)) {
+				setsToRequest.insert(set->id, set->accessHash);
+			}
 		}
 	}
 
@@ -1299,6 +1310,7 @@ std::vector<not_null<DocumentData*>> Stickers::getPremiumList(uint64 seed) {
 	};
 
 	addList(setsOrder(), SetFlag::Archived);
+	addList(archivedSetsOrder(), SetFlag(0));
 	addList(featuredSetsOrder(), SetFlag::Installed);
 
 	if (!setsToRequest.empty()) {
@@ -1413,6 +1425,7 @@ std::vector<not_null<DocumentData*>> Stickers::getListByEmoji(
 	};
 
 	addList(setsOrder(), SetFlag::Archived);
+	addList(archivedSetsOrder(), SetFlag(0));
 	//addList(featuredSetsOrder(), SetFlag::Installed);
 
 	if (!setsToRequest.empty()) {
