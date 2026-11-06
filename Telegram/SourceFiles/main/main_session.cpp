@@ -242,6 +242,7 @@ Session::Session(
 		// Steps are chained via crl::on_main so that paint events
 		// can be processed between heavy file reads.
 		local().readInstalledStickers();
+		local().readArchivedStickers();
 	}, [=] {
 		local().readInstalledMasks();
 	}, [=] {
